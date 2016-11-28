@@ -1,23 +1,25 @@
 console.log('********************************************************************************');
 console.log('*               Welcome to (the poorly named) Mykryption                       *');
+console.log('*      Compiles all folders in parent directory ending with -mykrypt           *');
 console.log('********************************************************************************');
 
 process.chdir('../');
 console.log('Running from ' + process.cwd());
 
-const folders = ['Films', 'Shows'],
-	crypts = require('./crypts.js'),
+var folders = [];
+const crypts = require('./crypts.js'),
 	inquirer = require('inquirer'),
 	fs = require('fs'),
+	path = require('path'),
 	exec = require('child_process').execSync;
 
 var log = './Public/mykryption.log.json';
 var pooswood = 'not-hard-coded-because-thats-retarded';
 var deleteOriginals;
 
-//
-// This MUST be a file in parent dir containing at least just {}
-//
+var folders = getEnkryptFolders();
+console.log(folders);
+return;
 
 try {
 	fs.accessSync(log, fs.F_OK);
@@ -76,6 +78,7 @@ function enkryptFolder(folder) {
 				// if previously enkrypted
 				if (fs.existsSync('Public\\' + crypts.befuddle(file) + '.mdata')) {
 					console.log(file + '\nis already enkrypted as:\n' + crypts.befuddle(file) + '.mdata\n');
+					// [TO DO] Offer the ability to delete the original file here
 				} else {
 					/*  7z
 						a            Add File
@@ -107,25 +110,32 @@ function dekryptFile(filename) {
 }
 
 function createFileList() {
-	var enkryptionLog = JSON.parse(fs.readFileSync(log, 'utf8'));
-	var fileList = [];
-	for (var enkrypted in enkryptionLog) {
-		fileList.push({
-			'originalFilename': crypts.dekrypt(enkrypted, pooswood),
-			'actualFilename': './Public/' + enkryptionLog[enkrypted]
+	try {
+		fs.accessSync(log, fs.F_OK);
+		var enkryptionLog = JSON.parse(fs.readFileSync(log, 'utf8'));
+		var fileList = [];
+		for (var enkrypted in enkryptionLog) {
+			fileList.push({
+				'originalFilename': crypts.dekrypt(enkrypted, pooswood),
+				'actualFilename': './Public/' + enkryptionLog[enkrypted]
+			});
+		}
+
+		// Sort by originalFilename
+		fileList.sort(function(a,b) {
+			if (a.originalFilename < b.originalFilename)
+				return -1;
+			if (a.originalFilename > b.originalFilename)
+				return 1;
+			return 0;
 		});
+
+		return fileList;
+
+	} catch (e) {
+		console.log("Couldn't find the log file " + log);
+		return false;
 	}
-
-	// Sort by originalFilename
-	fileList.sort(function(a,b) {
-		if (a.originalFilename < b.originalFilename)
-			return -1;
-		if (a.originalFilename > b.originalFilename)
-			return 1;
-		return 0;
-	});
-
-	return fileList;
 }
 
 function constructQuestionForFileList(fileList) {
@@ -202,24 +212,30 @@ inquirer.prompt(questionPassword).then(answer => {
 
 		if (whatToDo == 'decrypt') {
 			var fileList = createFileList();
-			//console.log(fileList);
-			var question = constructQuestionForFileList(fileList);
+			if (fileList) {
+				//console.log(fileList);
+				var question = constructQuestionForFileList(fileList);
 
-			inquirer.prompt(question).then(answer => {
-				var originalFilenames = answer.question;
+				inquirer.prompt(question).then(answer => {
+					var originalFilenames = answer.question;
 
-				for (var i in originalFilenames) {
-					dekryptFile(originalFilenames[i]);
-				}
-			});
+					for (var i in originalFilenames) {
+						dekryptFile(originalFilenames[i]);
+					}
+				});
+			}
 
 		} else if (whatToDo == 'encrypt') {
-
 			inquirer.prompt(questionDeleteOriginals).then(answer => {
 				deleteOriginals = answer.deleteOriginals;
 
 				for (var i in folders) {
-					enkryptFolder(folders[i]);
+					try {
+						fs.accessSync(folders[i], fs.F_OK);
+						enkryptFolder(folders[i]);
+					} catch (e) {
+						console.log('No such folder: ' + process.cwd() + '/' + folders[i]);
+					}
 				}
 			});
 
@@ -232,7 +248,22 @@ inquirer.prompt(questionPassword).then(answer => {
 	});
 });
 
+function getDirectories(srcpath) {
+	return fs.readdirSync(srcpath).filter(function(file) {
+		return fs.statSync(path.join(srcpath, file)).isDirectory();
+	});
+}
 
+function getEnkryptFolders() {
+	var foldersAll = getDirectories('.');
+	var foldersEnkrypt = [];
+	for (var i in foldersAll) {
+		if (foldersAll[i].substr(-8) == '-mykrypt') {
+			foldersEnkrypt.push(foldersAll[i]);
+		}
+	}
+	return foldersEnkrypt;
+}
 
 // Extract, with full paths (x not e) so /Public contains just flat files
 // which actually extract out to their original folder paths
