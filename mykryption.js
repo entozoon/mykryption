@@ -11,27 +11,35 @@ const folders = ['Films', 'Shows'],
 	fs = require('fs'),
 	exec = require('child_process').execSync;
 
+var log = './Public/mykryption.log.json';
 var pooswood = 'not-hard-coded-because-thats-retarded';
 var deleteOriginals;
 
 //
 // This MUST be a file in parent dir containing at least just {}
 //
-var enkryptionLog = JSON.parse(fs.readFileSync('./Public/mykryption.log.json', 'utf8'));
 
+try {
+	fs.accessSync(log, fs.F_OK);
+	var enkryptionLog = JSON.parse(fs.readFileSync(log, 'utf8'));
+} catch (e) {
+	var enkryptionLog = {};
+}
 
-// TEST FILENAME ENKRYPTIONS
-console.log('\n*********************** Testing Enkryptions Real Quick *************************');
-var filenameTest = 'My.Mytrax.1891.167p HPCD.X112-nhs.mppg3';
-console.log('Original filename:');
-console.log(filenameTest);
-console.log('\nLogged filename (enkrypted):');
-console.log(crypts.enkrypt(filenameTest, 'poswodtest'));
-console.log('\nLogged filename (dekrypted):');
-console.log(crypts.dekrypt(crypts.enkrypt(filenameTest, 'ciphertest'), 'ciphertest'));
-console.log('\nActual filename (befuddled):');
-console.log(crypts.befuddle(filenameTest) + '.mdata');
-console.log('********************************************************************************');
+function testFilenameEncryption() {
+	// TEST FILENAME ENKRYPTIONS
+	console.log('\n*********************** Testing Enkryptions Real Quick *************************');
+	var filenameTest = 'My.Mytrax.1891.167p HPCD.X112-nhs.mppg3';
+	console.log('Original filename:');
+	console.log(filenameTest);
+	console.log('\nLogged filename (enkrypted):');
+	console.log(crypts.enkrypt(filenameTest, 'poswodtest'));
+	console.log('\nLogged filename (dekrypted):');
+	console.log(crypts.dekrypt(crypts.enkrypt(filenameTest, 'ciphertest'), 'ciphertest'));
+	console.log('\nActual filename (befuddled):');
+	console.log(crypts.befuddle(filenameTest) + '.mdata');
+	console.log('********************************************************************************');
+}
 
 
 function execAndLog(cmd) {
@@ -54,13 +62,9 @@ function enkryptFolder(folder) {
 				process.stdout.write('.');
 
 				// Output to log
-				console.log(JSON.stringify(enkryptionLog, null, 4));
-			console.log('------');
 				enkryptionLog[crypts.enkrypt(folder + '/' + file, pooswood)] = crypts.befuddle(file) + '.mdata';
-				console.log(JSON.stringify(enkryptionLog, null, 4));
-				console.log('------');
 				fs.writeFile(
-					'./Public/mykryption.log.json',
+					log,
 					JSON.stringify(enkryptionLog, null, 4),
 					function(err) {
 						if (err != null) {
@@ -69,8 +73,10 @@ function enkryptFolder(folder) {
 					}
 				);
 
-				// if not previously enkrypted
-				if (!fs.existsSync('Public\\' + crypts.befuddle(file) + '.mdata')) {
+				// if previously enkrypted
+				if (fs.existsSync('Public\\' + crypts.befuddle(file) + '.mdata')) {
+					console.log(file + '\nis already enkrypted as:\n' + crypts.befuddle(file) + '.mdata\n');
+				} else {
 					/*  7z
 						a            Add File
 						-mx0         No compression
@@ -95,21 +101,50 @@ function enkryptFolder(folder) {
 	}
 }
 
-/*
-prompt.start();
+function dekryptFile(filename) {
+	// 7z x -y -bb1 -p%pass% %1
+	execAndLog('7z x -y -bb1 -p' + pooswood + ' ' + filename);
+}
 
-prompt.get([{
-	name: 'pooswood',
-	message: 'Enter password'
-}], function (err, result) {
-	if (err) { return onErr(err); }
-	pooswood = result.pooswood;
-
-	for (var i in folders) {
-		enkryptFolder(folders[i]);
+function createFileList() {
+	var enkryptionLog = JSON.parse(fs.readFileSync(log, 'utf8'));
+	var fileList = [];
+	for (var enkrypted in enkryptionLog) {
+		fileList.push({
+			'originalFilename': crypts.dekrypt(enkrypted, pooswood),
+			'actualFilename': './Public/' + enkryptionLog[enkrypted]
+		});
 	}
-});
-*/
+
+	// Sort by originalFilename
+	fileList.sort(function(a,b) {
+		if (a.originalFilename < b.originalFilename)
+			return -1;
+		if (a.originalFilename > b.originalFilename)
+			return 1;
+		return 0;
+	});
+
+	return fileList;
+}
+
+function constructQuestionForFileList(fileList) {
+	var choices = [];
+	for (var i in fileList) {
+		choices.push({
+			name: fileList[i].originalFilename,
+			value: fileList[i].actualFilename
+		});
+	}
+	var question = [{
+		name: 'question',
+		type: 'checkbox',
+		message: 'Choose File(s)',
+		choices: choices,
+		default: 0
+	}];
+	return question;
+}
 
 const questionWhatToDo = [{
 	name: 'whatToDo',
@@ -117,16 +152,20 @@ const questionWhatToDo = [{
 	message: 'What would you have me do?',
 	choices: [
 		{
+			name: 'View Files / Decrypt',
+			value: 'decrypt'
+		},
+		{
 			name: 'Encrypt Everything',
 			value: 'encrypt'
 		},
 		{
-			name: 'View Files And Unencrypt',
-			value: 'view'
-		},
-		{
 			name: 'Delete Files',
 			value: 'delete'
+		},
+		{
+			name: 'Test Encryption of Filenames',
+			value: 'testFilenameEncryption'
 		}
 	],
 	default: 0
@@ -155,12 +194,26 @@ const questionDeleteOriginals = [{
 	default: 0
 }];
 
-inquirer.prompt(questionWhatToDo).then(answer => {
-	var whatToDo = answer.whatToDo;
+inquirer.prompt(questionPassword).then(answer => {
+	pooswood = answer.password;
 
-	if (whatToDo == 'encrypt') {
-		inquirer.prompt(questionPassword).then(answer => {
-			password = answer.password;
+	inquirer.prompt(questionWhatToDo).then(answer => {
+		var whatToDo = answer.whatToDo;
+
+		if (whatToDo == 'decrypt') {
+			var fileList = createFileList();
+			//console.log(fileList);
+			var question = constructQuestionForFileList(fileList);
+
+			inquirer.prompt(question).then(answer => {
+				var originalFilenames = answer.question;
+
+				for (var i in originalFilenames) {
+					dekryptFile(originalFilenames[i]);
+				}
+			});
+
+		} else if (whatToDo == 'encrypt') {
 
 			inquirer.prompt(questionDeleteOriginals).then(answer => {
 				deleteOriginals = answer.deleteOriginals;
@@ -169,8 +222,14 @@ inquirer.prompt(questionWhatToDo).then(answer => {
 					enkryptFolder(folders[i]);
 				}
 			});
-		});
-	}
+
+		} else if (whatToDo == 'delete') {
+			console.log('Remove file and from log.. [TO DO]');
+
+		} else if (whatToDo == 'testFilenameEncryption') {
+			testFilenameEncryption();
+		}
+	});
 });
 
 

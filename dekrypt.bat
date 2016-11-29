@@ -25,4 +25,3 @@ set /p pass="Password: "
 
 :done
 timeout 9
-exit

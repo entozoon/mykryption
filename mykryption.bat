@@ -1,6 +1,6 @@
 @echo off
 color 03
 cls
-node enkrypt.js
+node mykryption.js
 echo.
 pause
