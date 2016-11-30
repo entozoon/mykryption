@@ -1,7 +1,7 @@
-console.log('********************************************************************************');
-console.log('*               Welcome to (the poorly named) Mykryption                       *');
-console.log('*      Compiles all folders in parent directory ending with -mykrypt           *');
-console.log('********************************************************************************');
+console.log('  ******************************************************************************');
+console.log('  * Mykryption - The (poorly named) cryption service                           *');
+console.log('  * Compiles (with paths) all folders in parent directory ending with -mykrypt *');
+console.log('  ******************************************************************************');
 
 process.chdir('../');
 console.log('Running from ' + process.cwd());
@@ -18,8 +18,6 @@ var pooswood = 'not-hard-coded-because-thats-retarded';
 var deleteOriginals;
 
 var folders = getEnkryptFolders();
-console.log(folders);
-return;
 
 try {
 	fs.accessSync(log, fs.F_OK);
@@ -30,7 +28,7 @@ try {
 
 function testFilenameEncryption() {
 	// TEST FILENAME ENKRYPTIONS
-	console.log('\n*********************** Testing Enkryptions Real Quick *************************');
+	console.log('\n  ************************ Testing Enkryptions Real Quick **********************');
 	var filenameTest = 'My.Mytrax.1891.167p HPCD.X112-nhs.mppg3';
 	console.log('Original filename:');
 	console.log(filenameTest);
@@ -40,7 +38,7 @@ function testFilenameEncryption() {
 	console.log(crypts.dekrypt(crypts.enkrypt(filenameTest, 'ciphertest'), 'ciphertest'));
 	console.log('\nActual filename (befuddled):');
 	console.log(crypts.befuddle(filenameTest) + '.mdata');
-	console.log('********************************************************************************');
+	console.log('  ******************************************************************************');
 }
 
 
@@ -97,7 +95,7 @@ function enkryptFolder(folder) {
 
 					// Enkrypt file
 					execAndLog('7z a -mx0 -mhe=on -mmt=on ' + zdelete + '-p' + pooswood + ' "Public\\' + crypts.befuddle(file) + '.mdata" "' + folder + '\\' + file + '"');
-					console.log('********************************************************************************');
+					console.log(' *******************************************************************************');
 				}
 			}
 		});
@@ -162,12 +160,8 @@ const questionWhatToDo = [{
 	message: 'What would you have me do?',
 	choices: [
 		{
-			name: 'View Files / Decrypt',
-			value: 'decrypt'
-		},
-		{
-			name: 'Encrypt Everything',
-			value: 'encrypt'
+			name: 'Explore Files',
+			value: 'explore'
 		},
 		{
 			name: 'Delete Files',
@@ -207,12 +201,18 @@ const questionDeleteOriginals = [{
 inquirer.prompt(questionPassword).then(answer => {
 	pooswood = answer.password;
 
+	console.log('');
 	inquirer.prompt(questionWhatToDo).then(answer => {
 		var whatToDo = answer.whatToDo;
 
-		if (whatToDo == 'decrypt') {
+		if (whatToDo == 'explore') {
 			var fileList = createFileList();
 			if (fileList) {
+				process.stdout.write('\033c'); // clear
+				console.log('  ******************************************************************************');
+				console.log('  * File List                                                                  *');
+				console.log('  * Choose files and press enter for further options.                          *');
+				console.log('  ******************************************************************************');
 				//console.log(fileList);
 				var question = constructQuestionForFileList(fileList);
 
@@ -224,7 +224,6 @@ inquirer.prompt(questionPassword).then(answer => {
 					}
 				});
 			}
-
 		} else if (whatToDo == 'encrypt') {
 			inquirer.prompt(questionDeleteOriginals).then(answer => {
 				deleteOriginals = answer.deleteOriginals;
