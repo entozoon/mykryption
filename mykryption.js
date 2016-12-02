@@ -1,10 +1,14 @@
+/*jshint -W041 */
+clearScreen('\n');
 console.log('  ******************************************************************************');
+console.log('  *                                                                            *');
 console.log('  * Mykryption - The (poorly named) cryption service                           *');
 console.log('  * Compiles (with paths) all folders in parent directory ending with -mykrypt *');
+console.log('  *                                                                            *');
 console.log('  ******************************************************************************');
 
 process.chdir('../');
-console.log('Running from ' + process.cwd());
+console.log('  Running from ' + process.cwd());
 
 var folders = [];
 const crypts = require('./crypts.js'),
@@ -63,15 +67,7 @@ function enkryptFolder(folder) {
 
 				// Output to log
 				enkryptionLog[crypts.enkrypt(folder + '/' + file, pooswood)] = crypts.befuddle(file) + '.mdata';
-				fs.writeFile(
-					log,
-					JSON.stringify(enkryptionLog, null, 4),
-					function(err) {
-						if (err != null) {
-							console.log('To err is human: ' + err);
-						}
-					}
-				);
+				enkryptionLogWrite();
 
 				// if previously enkrypted
 				if (fs.existsSync('Public\\' + crypts.befuddle(file) + '.mdata')) {
@@ -94,6 +90,7 @@ function enkryptFolder(folder) {
 					if (deleteOriginals) zdelete = '-sdel ';
 
 					// Enkrypt file
+					console.log(file);
 					execAndLog('7z a -mx0 -mhe=on -mmt=on ' + zdelete + '-p' + pooswood + ' "Public\\' + crypts.befuddle(file) + '.mdata" "' + folder + '\\' + file + '"');
 					console.log(' *******************************************************************************');
 				}
@@ -105,6 +102,22 @@ function enkryptFolder(folder) {
 function dekryptFile(filename) {
 	// 7z x -y -bb1 -p%pass% %1
 	execAndLog('7z x -y -bb1 -p' + pooswood + ' ' + filename);
+}
+
+function deleteFile(file) {
+	//console.log(file.originalFilename);
+	//console.log(crypts.enkrypt(file.originalFilename, pooswood));
+	//console.log(file.actualFilename);
+	if (fs.existsSync(file.actualFilename)) {
+		console.log('Deleting file:');
+		console.log(file.actualFilename);
+		fs.unlinkSync(file.actualFilename);
+		console.log('Removing from log');
+		delete enkryptionLog[crypts.enkrypt(file.originalFilename, pooswood)];
+	} else {
+		console.log("Couldn't find file:");
+		console.log(file.actualFilename);
+	}
 }
 
 function createFileList() {
@@ -136,24 +149,6 @@ function createFileList() {
 	}
 }
 
-function constructQuestionForFileList(fileList) {
-	var choices = [];
-	for (var i in fileList) {
-		choices.push({
-			name: fileList[i].originalFilename,
-			value: fileList[i].actualFilename
-		});
-	}
-	var question = [{
-		name: 'question',
-		type: 'checkbox',
-		message: 'Choose File(s)',
-		choices: choices,
-		default: 0
-	}];
-	return question;
-}
-
 const questionWhatToDo = [{
 	name: 'whatToDo',
 	type: 'list',
@@ -164,8 +159,8 @@ const questionWhatToDo = [{
 			value: 'explore'
 		},
 		{
-			name: 'Delete Files',
-			value: 'delete'
+			name: "Encrypt All '-mykrypt' folders in parent",
+			value: 'encrypt'
 		},
 		{
 			name: 'Test Encryption of Filenames',
@@ -198,17 +193,56 @@ const questionDeleteOriginals = [{
 	default: 0
 }];
 
+function constructQuestionForFileList(fileList) {
+	var choices = [];
+	for (var i in fileList) {
+		choices.push({
+			name: fileList[i].originalFilename,
+			value: {
+				originalFilename: fileList[i].originalFilename,
+				actualFilename: fileList[i].actualFilename
+			}
+		});
+	}
+	var question = [{
+		name: 'question',
+		type: 'checkbox',
+		message: 'Choose File(s)',
+		choices: choices,
+		default: 0
+	}];
+	return question;
+}
+
+const questionSelectedFiles = [{
+	name: 'question',
+	type: 'list',
+	message: 'What shall we do with those files?',
+	choices: [
+		{
+			name: 'Decrypt',
+			value: 'decrypt'
+		},
+		{
+			name: 'Delete',
+			value: 'delete'
+		}
+	],
+	default: 0
+}];
+
+console.log('');
 inquirer.prompt(questionPassword).then(answer => {
 	pooswood = answer.password;
 
-	console.log('');
+	clearScreen('\n');
 	inquirer.prompt(questionWhatToDo).then(answer => {
 		var whatToDo = answer.whatToDo;
 
 		if (whatToDo == 'explore') {
 			var fileList = createFileList();
 			if (fileList) {
-				process.stdout.write('\033c'); // clear
+				clearScreen('\n');
 				console.log('  ******************************************************************************');
 				console.log('  * File List                                                                  *');
 				console.log('  * Choose files and press enter for further options.                          *');
@@ -216,16 +250,34 @@ inquirer.prompt(questionPassword).then(answer => {
 				//console.log(fileList);
 				var question = constructQuestionForFileList(fileList);
 
+				console.log('');
 				inquirer.prompt(question).then(answer => {
-					var originalFilenames = answer.question;
-
-					for (var i in originalFilenames) {
-						dekryptFile(originalFilenames[i]);
+					if (answer.question.length == 0) {
+						console.log("  You didn't select any files! Hit space to select things.");
+						// [TO DO] Go back to start of menu system
+						return;
 					}
+					var files = answer.question;
+
+					console.log('');
+					inquirer.prompt(questionSelectedFiles).then(answer => {
+						if (answer.question == 'decrypt') {
+							for (var i in files) {
+								dekryptFile(files[i].actualFilename);
+							}
+						} else if (answer.question == 'delete') {
+							for (var i in files) {
+								deleteFile(files[i]);
+							}
+							enkryptionLogWrite();
+						}
+					});
 				});
 			}
 		} else if (whatToDo == 'encrypt') {
+			clearScreen('\n');
 			inquirer.prompt(questionDeleteOriginals).then(answer => {
+				clearScreen('\n');
 				deleteOriginals = answer.deleteOriginals;
 
 				for (var i in folders) {
@@ -262,6 +314,25 @@ function getEnkryptFolders() {
 		}
 	}
 	return foldersEnkrypt;
+}
+
+function clearScreen(append) {
+	process.stdout.write('\033c'); // clear
+	if (append != null) {
+		process.stdout.write(append);
+	}
+}
+
+function enkryptionLogWrite() {
+	fs.writeFile(
+		log,
+		JSON.stringify(enkryptionLog, null, 4),
+		function(err) {
+			if (err != null) {
+				console.log('To err is human: ' + err);
+			}
+		}
+	);
 }
 
 // Extract, with full paths (x not e) so /Public contains just flat files
