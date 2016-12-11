@@ -5,10 +5,11 @@ var consonants = ['b','c','d','f','g','h','j','k','l','m','n','p','q','r','s','t
 
 module.exports = {
 	/**
-	 * My.Mytrix.1994.1067p.HDDVD.X262-hv.mk3 -> msysmsyatsrsiaxs366067210
-	 * Unique filename that can't be reverse engineered
+	 * My.Mytrix.1994.1067p.HDDVD.X262-hv.mk3 -> msysmsyatsrsiaxs199-_366067210
+	 * Unique filename that can't be wholly reverse engineered
 	 */
 	befuddle: function(filename) {
+		console.log('\n ' + filename + ' -->');
 		var befuddled = '';
 		for (var i in filename) {
 			if (i < revealness) {
@@ -22,10 +23,14 @@ module.exports = {
 					if (filename[i].toLowerCase() != 's') {
 						befuddled += 's';
 					}
+				} else if (filename[i].isInt()) {
+					befuddled += filename[i]; // yolo it in
 				}
+				console.log(' ' + befuddled);
 			}
 		}
-		befuddled += filename.hashCode();
+		befuddled += '_' + filename.hashCode();
+		console.log(' ' + befuddled + '\n');
 		return befuddled;
 	},
 
@@ -73,3 +78,9 @@ String.prototype.hashCode = function() {
 	}
 	return hash;
 };
+
+// Uses only the first character of whatever's passed #lolsocksz0ry0lo
+String.prototype.isInt = function() {
+	var n = ~~Number(this[0]);
+	return String(n) === this[0] && n >= 0;
+}

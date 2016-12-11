@@ -14,6 +14,7 @@ var folders = [];
 const crypts = require('./crypts.js'),
 	inquirer = require('inquirer'),
 	fs = require('fs'),
+	glob = require('glob'),
 	path = require('path'),
 	exec = require('child_process').execSync;
 
@@ -23,6 +24,8 @@ var deleteOriginals;
 
 var folders = getEnkryptFolders();
 
+backupEnkryptionLog();
+return;
 try {
 	fs.accessSync(log, fs.F_OK);
 	var enkryptionLog = JSON.parse(fs.readFileSync(log, 'utf8'));
@@ -41,7 +44,7 @@ function testFilenameEncryption() {
 	console.log('\nLogged filename (dekrypted):');
 	console.log(crypts.dekrypt(crypts.enkrypt(filenameTest, 'ciphertest'), 'ciphertest'));
 	console.log('\nActual filename (befuddled):');
-	console.log(crypts.befuddle(filenameTest) + '.mdata');
+	console.log(crypts.befuddle(filenameTest) + '.mdata.001');
 	console.log('  ******************************************************************************');
 }
 
@@ -54,48 +57,52 @@ function execAndLog(cmd) {
 function enkryptFolder(folder) {
 	//fs.readdir(folder, (err, files) => { //readdirSync?
 	var files = fs.readdirSync(folder);
-		// If it contains files
+
+	// If it contains files
 	if (files != null) {
 		// For each file
 		files.forEach(file => {
+			/*
 			// If not .bat, .js or enkrypted file
+			// Update: Removing as this was for when it compiled mykryption dir
 			if (file.substr(-4) != '.bat' &&
 				file.substr(-3) != '.js' &&
 				file.substr(-6) != '.mdata'
 			) {
-				process.stdout.write('.');
+			*/
+			//process.stdout.write('.');
 
-				// Output to log
-				enkryptionLog[crypts.enkrypt(folder + '/' + file, pooswood)] = crypts.befuddle(file) + '.mdata';
-				enkryptionLogWrite();
+			var befuddled = crypts.befuddle(file);
 
-				// if previously enkrypted
-				if (fs.existsSync('Public\\' + crypts.befuddle(file) + '.mdata')) {
-					console.log(file + '\nis already enkrypted as:\n' + crypts.befuddle(file) + '.mdata\n');
-					// [TO DO] Offer the ability to delete the original file here
-				} else {
-					/*  7z
-						a            Add File
-						-mx0         No compression
-						-mhe=on      Filename enkryption
-						-mmt=on      Enable multithreading
-						-v100m       Split into file chunks (e.g. 100mb)
-						-sdel        Delete after compression!
-						-p[password]
-						output
-						input
+			// Output to log
+			enkryptionLog[crypts.enkrypt(folder + '/' + file, pooswood)] = befuddled + '.mdata.001';
+			enkryptionLogWrite();
 
-						7z a -mx0 -mhe=on -mmt=on -pmypassword dwa.mp4.mdata dwa.mp4
-					*/
-					var zdelete = '';
-					if (deleteOriginals) zdelete = '-sdel ';
+			// if previously enkrypted
+			if (fs.existsSync('Public\\' + befuddled + '.mdata.001')) {
+				console.log(' ' + file + '\n is already enkrypted as:\n ' + befuddled + '.mdata.001\n');
+				// [TO DO] Offer the ability to delete the original file here
+			} else {
+				/*  7z
+					a            Add File
+					-mx0         No compression
+					-mhe=on      Filename enkryption
+					-mmt=on      Enable multithreading
+					-v100m       Split into file chunks (e.g. 100mb)
+					-sdel        Delete after compression!
+					-p[password]
+					output
+					input
 
-					// Enkrypt file
-					console.log(file);
-					execAndLog('7z a -mx0 -mhe=on -mmt=on -v100m ' + zdelete + '-p' + pooswood + ' "Public\\' + crypts.befuddle(file) + '.mdata" "' + folder + '\\' + file + '"');
-					console.log(' *******************************************************************************');
-				}
+					7z a -mx0 -mhe=on -mmt=on -pmypassword dwa.mp4.mdata dwa.mp4
+				*/
+				var zdelete = '';
+				if (deleteOriginals) zdelete = '-sdel ';
+
+				// Enkrypt file
+				execAndLog('7z a -mx0 -mhe=on -mmt=on -v100m ' + zdelete + '-p' + pooswood + ' "Public\\' + befuddled + '.mdata" "' + folder + '\\' + file + '"');
 			}
+			console.log('*******************************************************************************');
 		});
 	}
 }
@@ -106,17 +113,37 @@ function dekryptFile(filename) {
 }
 
 function deleteFile(file) {
-	//console.log(file.originalFilename);
-	//console.log(crypts.enkrypt(file.originalFilename, pooswood));
-	//console.log(file.actualFilename);
+	console.log(file.originalFilename);
+	console.log(crypts.enkrypt(file.originalFilename, pooswood));
+	console.log(file.actualFilename);
+
 	if (fs.existsSync(file.actualFilename)) {
-		console.log('Deleting file:');
-		console.log(file.actualFilename);
-		fs.unlinkSync(file.actualFilename);
-		console.log('Removing from log');
-		delete enkryptionLog[crypts.enkrypt(file.originalFilename, pooswood)];
+		console.log(' Deleting file(s):');
+		//fs.unlinkSync(file.actualFilename); // pre-chunking
+		if (file.actualFilename.substr(-4) == '.001') { // which it totally will do
+			var filenamePreChunk = file.actualFilename.substr(0, file.actualFilename.length - 4);
+			//console.log(filenamePreChunk + '.*');
+			glob(filenamePreChunk + ".*", function(err, files) {
+				if (err) {
+					console.log(' Error when deleting file:');
+					console.log(err);
+				} else {
+					// .mdata.001, .mdata.002, ..
+					for (var i in files) {
+						console.log(files[i]);
+						fs.unlinkSync(files[i]);
+					}
+					delete enkryptionLog[crypts.enkrypt(file.originalFilename, pooswood)];
+					enkryptionLogWrite();
+					console.log(' Removed from log.');
+				}
+			});
+		} else {
+			console.log(" Couldn't understand file type:");
+			console.log(file.actualFilename);
+		}
 	} else {
-		console.log("Couldn't find file:");
+		console.log(" Couldn't find file:");
 		console.log(file.actualFilename);
 	}
 }
@@ -270,7 +297,6 @@ inquirer.prompt(questionPassword).then(answer => {
 							for (var i in files) {
 								deleteFile(files[i]);
 							}
-							enkryptionLogWrite();
 						}
 					});
 				});
@@ -282,8 +308,15 @@ inquirer.prompt(questionPassword).then(answer => {
 				deleteOriginals = answer.deleteOriginals;
 
 				if (!folders.length) {
-					console.log('No folders found in parent directory ending with [mykript]');
+					console.log(' No folders found in parent directory ending with [mykript]');
 				}
+
+				console.log(' Folders found:');
+
+				for (var i in folders) {
+					console.log(' ' + folders[i]);
+				}
+				console.log('');
 
 				for (var i in folders) {
 					try {
@@ -294,10 +327,6 @@ inquirer.prompt(questionPassword).then(answer => {
 					}
 				}
 			});
-
-		} else if (whatToDo == 'delete') {
-			console.log('Remove file and from log.. [TO DO]');
-
 		} else if (whatToDo == 'testFilenameEncryption') {
 			testFilenameEncryption();
 		}
@@ -326,6 +355,13 @@ function clearScreen(append) {
 	if (append != null) {
 		process.stdout.write(append);
 	}
+}
+
+function backupEnkryptionLog() {
+	// ISO date plug full date value as a integer; so cray precise.
+	var d = new Date();
+	console.log(d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate() + '_' + new Date().valueOf());
+	//fs.createReadStream(log).pipe(fs.createWriteStream(log + 'dwa'));
 }
 
 function enkryptionLogWrite() {
