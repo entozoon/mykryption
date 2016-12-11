@@ -9,7 +9,7 @@ module.exports = {
 	 * Unique filename that can't be wholly reverse engineered
 	 */
 	befuddle: function(filename) {
-		console.log('\n ' + filename + ' -->');
+		console.log('\n  ' + filename + ' -->');
 		var befuddled = '';
 		for (var i in filename) {
 			if (i < revealness) {
@@ -26,11 +26,11 @@ module.exports = {
 				} else if (filename[i].isInt()) {
 					befuddled += filename[i]; // yolo it in
 				}
-				console.log(' ' + befuddled);
+				console.log('  ' + befuddled);
 			}
 		}
 		befuddled += '_' + filename.hashCode();
-		console.log(' ' + befuddled + '\n');
+		console.log('  ' + befuddled + ' <--\n');
 		return befuddled;
 	},
 

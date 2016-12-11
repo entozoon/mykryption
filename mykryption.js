@@ -1,11 +1,11 @@
 /*jshint -W041 */
 clearScreen('\n');
-console.log('  ******************************************************************************');
-console.log('  *                                                                            *');
-console.log('  * Mykryption - The (poorly named) cryption service                           *');
+console.log('  *******************************************************************************');
+console.log('  *                                                                             *');
+console.log('  * Mykryption - The (poorly named) cryption service                            *');
 console.log('  * Compiles (with paths) all folders in parent directory ending with [mykrypt] *');
-console.log('  *                                                                            *');
-console.log('  ******************************************************************************');
+console.log('  *                                                                             *');
+console.log('  *******************************************************************************');
 
 process.chdir('../');
 console.log('  Running from ' + process.cwd());
@@ -18,19 +18,24 @@ const crypts = require('./crypts.js'),
 	path = require('path'),
 	exec = require('child_process').execSync;
 
-var log = './Public/mykryption.log.json';
+var log = './Public/mykryption_log/mykryption.log.json';
 var pooswood = 'not-hard-coded-because-thats-retarded';
 var deleteOriginals;
 
 var folders = getEnkryptFolders();
 
-backupEnkryptionLog();
-return;
 try {
 	fs.accessSync(log, fs.F_OK);
+	// Load
 	var enkryptionLog = JSON.parse(fs.readFileSync(log, 'utf8'));
-} catch (e) {
+	// Backup (only if it exists)
+	backupEnkryptionLog();
+} catch(err) {
+	console.log("  No log file found, or it was orrup (don't panic), error details:");
+	console.log(err);
 	var enkryptionLog = {};
+	console.log('\n  Creating a new one.'); // [TO DO] Make this an optional step, likely unwanted tbh
+	enkryptionLogWrite();
 }
 
 function testFilenameEncryption() {
@@ -80,7 +85,7 @@ function enkryptFolder(folder) {
 
 			// if previously enkrypted
 			if (fs.existsSync('Public\\' + befuddled + '.mdata.001')) {
-				console.log(' ' + file + '\n is already enkrypted as:\n ' + befuddled + '.mdata.001\n');
+				console.log('  ' + file + '\n  is already enkrypted as:\n  ' + befuddled + '.mdata.001\n');
 				// [TO DO] Offer the ability to delete the original file here
 			} else {
 				/*  7z
@@ -102,7 +107,7 @@ function enkryptFolder(folder) {
 				// Enkrypt file
 				execAndLog('7z a -mx0 -mhe=on -mmt=on -v100m ' + zdelete + '-p' + pooswood + ' "Public\\' + befuddled + '.mdata" "' + folder + '\\' + file + '"');
 			}
-			console.log('*******************************************************************************');
+			console.log('\n*******************************************************************************');
 		});
 	}
 }
@@ -112,20 +117,27 @@ function dekryptFile(filename) {
 	execAndLog('7z x -y -bb1 -p' + pooswood + ' ' + filename);
 }
 
+/**
+ * deleteFile
+ * Deletes physical file and removes from the log
+ * It runs asynchronously with the glob, so console log is a bit strange
+ * but seems to do the trick just fine providing enkryptionLogWrite runs afterward
+ */
 function deleteFile(file) {
+	console.log('\n  Looking for file:');
 	console.log(file.originalFilename);
-	console.log(crypts.enkrypt(file.originalFilename, pooswood));
+	//console.log(crypts.enkrypt(file.originalFilename, pooswood));
 	console.log(file.actualFilename);
 
 	if (fs.existsSync(file.actualFilename)) {
-		console.log(' Deleting file(s):');
+		console.log('\n  Deleting file(s):');
 		//fs.unlinkSync(file.actualFilename); // pre-chunking
 		if (file.actualFilename.substr(-4) == '.001') { // which it totally will do
 			var filenamePreChunk = file.actualFilename.substr(0, file.actualFilename.length - 4);
 			//console.log(filenamePreChunk + '.*');
 			glob(filenamePreChunk + ".*", function(err, files) {
 				if (err) {
-					console.log(' Error when deleting file:');
+					console.log('  Error when deleting file:');
 					console.log(err);
 				} else {
 					// .mdata.001, .mdata.002, ..
@@ -134,12 +146,12 @@ function deleteFile(file) {
 						fs.unlinkSync(files[i]);
 					}
 					delete enkryptionLog[crypts.enkrypt(file.originalFilename, pooswood)];
-					enkryptionLogWrite();
-					console.log(' Removed from log.');
+					console.log('\n  Removing from log.\n');
 				}
 			});
+			enkryptionLogWrite();
 		} else {
-			console.log(" Couldn't understand file type:");
+			console.log("  Couldn't understand file type:");
 			console.log(file.actualFilename);
 		}
 	} else {
@@ -210,18 +222,19 @@ const questionDeleteOriginals = [{
 	message: 'Delete originals after encryption?',
 	choices: [
 		{
-			name: 'Yes',
-			value: true
-		},
-		{
 			name: 'No',
 			value: false
+		},
+		{
+			name: 'Yes',
+			value: true
 		}
 	],
 	default: 0
 }];
 
 function constructQuestionForFileList(fileList) {
+	var pageSize = process.stdout.getWindowSize(1)[1] - 15;
 	var choices = [];
 	for (var i in fileList) {
 		choices.push({
@@ -237,7 +250,8 @@ function constructQuestionForFileList(fileList) {
 		type: 'checkbox',
 		message: 'Choose File(s)',
 		choices: choices,
-		default: 0
+		default: 0,
+		pageSize: pageSize
 	}];
 	return question;
 }
@@ -294,6 +308,7 @@ inquirer.prompt(questionPassword).then(answer => {
 								dekryptFile(files[i].actualFilename);
 							}
 						} else if (answer.question == 'delete') {
+							console.log('  \nFair warning, this runs asynchronously so the output here is bonkers..\n');
 							for (var i in files) {
 								deleteFile(files[i]);
 							}
@@ -314,7 +329,7 @@ inquirer.prompt(questionPassword).then(answer => {
 				console.log(' Folders found:');
 
 				for (var i in folders) {
-					console.log(' ' + folders[i]);
+					console.log('  ' + folders[i]);
 				}
 				console.log('');
 
@@ -360,8 +375,11 @@ function clearScreen(append) {
 function backupEnkryptionLog() {
 	// ISO date plug full date value as a integer; so cray precise.
 	var d = new Date();
-	console.log(d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate() + '_' + new Date().valueOf());
-	//fs.createReadStream(log).pipe(fs.createWriteStream(log + 'dwa'));
+	var append = '.backup_previous_' + d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+	append += '_' + new Date().valueOf();
+	var backupFilename = log + append;
+	console.log('  Backing up encryption log to: ' + backupFilename);
+	fs.createReadStream(log).pipe(fs.createWriteStream(backupFilename));
 }
 
 function enkryptionLogWrite() {
