@@ -3,7 +3,7 @@ clearScreen('\n');
 console.log('  ******************************************************************************');
 console.log('  *                                                                            *');
 console.log('  * Mykryption - The (poorly named) cryption service                           *');
-console.log('  * Compiles (with paths) all folders in parent directory ending with -mykrypt *');
+console.log('  * Compiles (with paths) all folders in parent directory ending with [mykrypt] *');
 console.log('  *                                                                            *');
 console.log('  ******************************************************************************');
 
@@ -160,7 +160,7 @@ const questionWhatToDo = [{
 			value: 'explore'
 		},
 		{
-			name: "Encrypt All '-mykrypt' folders in parent",
+			name: "Encrypt All '[mykrypt]' folders in parent",
 			value: 'encrypt'
 		},
 		{
@@ -281,6 +281,10 @@ inquirer.prompt(questionPassword).then(answer => {
 				clearScreen('\n');
 				deleteOriginals = answer.deleteOriginals;
 
+				if (!folders.length) {
+					console.log('No folders found in parent directory ending with [mykript]');
+				}
+
 				for (var i in folders) {
 					try {
 						fs.accessSync(folders[i], fs.F_OK);
@@ -310,7 +314,7 @@ function getEnkryptFolders() {
 	var foldersAll = getDirectories('.');
 	var foldersEnkrypt = [];
 	for (var i in foldersAll) {
-		if (foldersAll[i].substr(-8) == '-mykrypt') {
+		if (foldersAll[i].substr(-9) == '[mykrypt]') {
 			foldersEnkrypt.push(foldersAll[i]);
 		}
 	}
