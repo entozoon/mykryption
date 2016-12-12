@@ -1,5 +1,4 @@
 **.lnk
 **.log*
 node_modules/*
-!node_modules/inquirer
 *.gif

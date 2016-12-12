@@ -40,7 +40,7 @@ PromptUI.prototype.run = function (questions) {
 
   return this.process
     .reduce(function (answers, answer) {
-      _.set(this.answers, answer.name, answer.answer);
+      this.answers[answer.name] = answer.answer;
       return this.answers;
     }.bind(this), {})
     .toPromise(Promise)

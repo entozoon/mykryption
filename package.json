@@ -1,6 +1,9 @@
 {
   "dependencies": {
     "crypto": "^0.0.3",
-    "glob": "^7.1.1"
+    "glob": "^7.1.1",
+    "glob-promise": "^2.0.0",
+    "inquirer": "^2.0.0",
+    "mkdirp": "^0.5.1"
   }
 }
