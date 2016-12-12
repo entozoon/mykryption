@@ -42,6 +42,24 @@ try {
 	enkryptionLogWrite();
 }
 
+function exitHandler(bleh, restart) {
+	console.log(restart);
+	if (restart) {
+		console.log('RESTARTTTTT');
+		return;
+	}
+}
+// natural exit
+process.on('exit', exitHandler.bind(null, true));
+
+// ctrl-c
+process.on('SIGINT', exitHandler.bind(null, false));
+
+// uncaught exceptions
+process.on('uncaughtException', exitHandler.bind(null, false));
+
+// ******************************** //
+
 const questionWhatToDo = [{
 	name: 'whatToDo',
 	type: 'list',
