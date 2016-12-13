@@ -6,7 +6,7 @@ const header = '\n  ************************************************************
 const intro = header.substr(0, header.length - 1	) + '\
   *  The (poorly named) cryption service.                                        *\n\
   *  Compiles, with paths, all folders in parent directory ending with [mykrypt] *\n\
-  ********************************************************************************\n\n';
+  ********************************************************************************\n';
 console.log(intro); // not clearScreen as, when it resets, it's annoying
 
 process.chdir('../');
@@ -23,6 +23,7 @@ const crypts = require('./crypts.js'),
 	exec = require('child_process').execSync;
 
 var log = './Public/mykryption_log/mykryption.log.json';
+var publicDir = './Public';
 var pooswood = 'not-hard-coded-because-thats-retarded';
 var deleteOriginals;
 
@@ -299,7 +300,7 @@ function enkryptFolder(folder) {
 			enkryptionLog[crypts.enkrypt(folder + '/' + file, pooswood)] = befuddled + '.mdata.001';
 
 			// if previously enkrypted
-			if (fs.existsSync('Public\\' + befuddled + '.mdata.001')) {
+			if (fs.existsSync(publicDir + '/' + befuddled + '.mdata.001')) {
 				console.log('  ' + file + '\n  is already enkrypted as:\n  ' + befuddled + '.mdata.001');
 				// [TO DO] Offer the ability to delete the original file here
 			} else {
@@ -321,7 +322,7 @@ function enkryptFolder(folder) {
 
 				// Enkrypt file
 				try {
-					execAndLog('7z a -mx0 -mhe=on -mmt=on -v100m ' + zdelete + '-p' + pooswood + ' "Public\\' + befuddled + '.mdata" "' + folder + '\\' + file + '"');
+					execAndLog('7z a -mx0 -mhe=on -mmt=on -v100m ' + zdelete + '-p' + pooswood + ' "Public/' + befuddled + '.mdata" "' + folder + '\\' + file + '"');
 				} catch(err) {
 					console.log(err);
 				}
@@ -478,7 +479,7 @@ function createFileList() {
 		for (var enkrypted in enkryptionLog) {
 			fileList.push({
 				'originalFilename': crypts.dekrypt(enkrypted, pooswood),
-				'actualFilename': './Public/' + enkryptionLog[enkrypted]
+				'actualFilename': publicDir + '/' + enkryptionLog[enkrypted]
 			});
 		}
 
