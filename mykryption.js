@@ -22,8 +22,9 @@ const crypts = require('./crypts.js'),
 	path = require('path'),
 	exec = require('child_process').execSync;
 
+// [TO DO] Put all variables as a .json file or better yet, saved inquirer input
 var log = './Public/mykryption_log/mykryption.log.json';
-var publicDir = './Public';
+var publicDir = './Public'; // from POV of parent with the chdir above
 var pooswood = 'not-hard-coded-because-thats-retarded';
 var deleteOriginals;
 
@@ -322,7 +323,7 @@ function enkryptFolder(folder) {
 
 				// Enkrypt file
 				try {
-					execAndLog('7z a -mx0 -mhe=on -mmt=on -v100m ' + zdelete + '-p' + pooswood + ' "Public/' + befuddled + '.mdata" "' + folder + '\\' + file + '"');
+					execAndLog('7z a -mx0 -mhe=on -mmt=on -v100m ' + zdelete + '-p' + pooswood + ' "' + publicDir + '/' + befuddled + '.mdata" "' + folder + '\\' + file + '"');
 				} catch(err) {
 					console.log(err);
 				}
@@ -335,6 +336,7 @@ function enkryptFolder(folder) {
 		// However, placing it here seems to be okay.. it doesn't actual write til the end(?)
 		console.log('\n  Writing to log\n');
 		enkryptionLogWrite();
+		backupEnkryptionLog();
 		return; //main(); // return to start
 	}
 }
