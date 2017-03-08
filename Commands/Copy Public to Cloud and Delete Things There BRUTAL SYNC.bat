@@ -10,5 +10,4 @@ pause
 cd ../..
 echo rclone sync Public amazon:Public
 rclone sync Public amazon:Public
-cd Commands
 pause

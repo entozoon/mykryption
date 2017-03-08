@@ -8,5 +8,4 @@ pause
 cd ../..
 echo rclone copy amazon:Public Public
 rclone copy amazon:Public Public
-cd Commands
 pause
