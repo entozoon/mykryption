@@ -1,4 +1,4 @@
-@echo on
+@echo off
 echo.
 echo This copies files to the cloud and doesn't delete anything there (friendly).
 echo.
