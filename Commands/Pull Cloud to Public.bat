@@ -5,7 +5,6 @@ echo.
 echo Are you sure?
 echo.
 pause
-cd ../..
-echo rclone copy amazon:Public Public
-rclone copy amazon:Public Public
+echo rclone copy amazon:Public ../../Public
+rclone copy amazon:Public ../../Public
 pause
