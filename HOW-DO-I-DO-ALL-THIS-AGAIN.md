@@ -1,3 +1,4 @@
+# MYKRYPTION
 Okay so from the POV of the parent folder (e.g. Cloud):
 
 There are various [mykrypt] folders which exist only locally.
@@ -9,3 +10,10 @@ So Public should be the same locally and remotely.
 In future I could make it pull only certain remote stuff, and handle the push/pull within mykryption.
 
 Passwords aren't written anywhere of course so don't bother looking lol duh, not complicated.
+
+
+## NOTE
+7z directly compiles the contents of each [mykrypt] folder,
+so if a folder is nested within that, it goes into a single .mdata file.
+
+Which may, or may not be ideal.. considering that updating a file within that means re-upping that entire file
