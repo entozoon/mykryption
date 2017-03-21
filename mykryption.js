@@ -310,7 +310,7 @@ function enkryptFolder(folder) {
 					-mx0         No compression
 					-mhe=on      Filename enkryption
 					-mmt=on      Enable multithreading
-					-v100m       Split into file chunks (e.g. 100mb)
+					-v2000m      Split into file chunks (e.g. 2000mb) (AD has 50gb max)
 					-sdel        Delete after compression!
 					-p[password]
 					output
@@ -323,7 +323,7 @@ function enkryptFolder(folder) {
 
 				// Enkrypt file
 				try {
-					execAndLog('7z a -mx0 -mhe=on -mmt=on -v100m ' + zdelete + '-p' + pooswood + ' "' + publicDir + '/' + befuddled + '.mdata" "' + folder + '\\' + file + '"');
+					execAndLog('7z a -mx0 -mhe=on -mmt=on -v2000m ' + zdelete + '-p' + pooswood + ' "' + publicDir + '/' + befuddled + '.mdata" "' + folder + '\\' + file + '"');
 				} catch(err) {
 					console.log(err);
 				}
