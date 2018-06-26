@@ -316,7 +316,7 @@ function enkryptFolder(folder) {
 					output
 					input
 
-					7z a -mx0 -mhe=on -mmt=on -pmypassword dwa.mp4.mdata dwa.mp4
+					7z a -mx0 -mhe=on -mmt=on -v2000m -pmypassword dwa.mp4.mdata dwa.mp4
 				*/
 				var zdelete = '';
 				if (deleteOriginals) zdelete = '-sdel ';
